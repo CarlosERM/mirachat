@@ -8,11 +8,9 @@ import { MyUser } from "../utils/interface";
 export function Form({
   user,
   updateUser,
-  scrollDown,
 }: {
   user: MyUser;
   updateUser: (updatedUser: MyUser) => void;
-  scrollDown: () => void;
 }) {
   const [value, setValue] = useState("");
 
@@ -46,7 +44,6 @@ export function Form({
       ];
     }
     updateUser(user);
-    scrollDown();
   }
 
   return (

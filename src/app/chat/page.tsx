@@ -16,21 +16,19 @@ export default function Home() {
   const [users, setUsers] = useState<MyUser[]>([]);
   const [selectedUser, setSelectedUser] = useState<MyUser>();
   const router = useRouter();
-  const scrollView = useRef<HTMLUListElement>(null);
+  const scrollView = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    // Scroll to the bottom of the chat when messages change
+    scrollDown();
+  }, [users]);
 
   function scrollDown() {
     if (scrollView.current) {
       console.log(scrollView.current.clientHeight);
-      // scrollView.current.scrollTop = scrollView.current.scrollHeight;
-      scrollView.current.scrollTo(0, scrollView.current.scrollHeight);
-
-      console.log();
-      // console.log(scrollView.current.scrollHeight);
-      // scrollView.current.scroll({
-      //   block: "end",
-      //   behavior: "smooth",
-      //   inline: "start",
-      // });
+      scrollView.current.scrollIntoView({
+        behavior: "smooth",
+      });
     }
   }
 
@@ -144,7 +142,6 @@ export default function Home() {
         };
 
         setSelectedUser((prevState) => updatedUser);
-        scrollDown();
       }
     }
 
@@ -198,11 +195,7 @@ export default function Home() {
           <HeaderChat username={selectedUser.username} />
           {/* <ConnectionState isConnected={isConnected} /> */}
           <Messages user={selectedUser} scrollView={scrollView} />
-          <Form
-            user={selectedUser}
-            updateUser={updateUser}
-            scrollDown={scrollDown}
-          />
+          <Form user={selectedUser} updateUser={updateUser} />
           {/* <p>Status: {isConnected ? "Conectado" : "Desconectado"} </p>
         <p>Transport: {transport}</p> */}
         </main>
