@@ -3,6 +3,7 @@ export interface MyUser {
   username: string;
   self: boolean;
   messages?: MyMessage[];
+  connected: boolean;
 }
 
 export interface MyMessage {

@@ -19,13 +19,11 @@ export default function Home() {
   const scrollView = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    // Scroll to the bottom of the chat when messages change
     scrollDown();
   }, [users]);
 
   function scrollDown() {
     if (scrollView.current) {
-      console.log(scrollView.current.clientHeight);
       scrollView.current.scrollIntoView({
         behavior: "smooth",
       });
@@ -48,6 +46,7 @@ export default function Home() {
           username: users[i].username,
           self: users[i].self,
           messages: users[i].messages,
+          connected: users[i].connected,
         };
         setSelectedUser(selectedUser);
       }
@@ -63,9 +62,17 @@ export default function Home() {
   }
 
   useEffect(() => {
-    socket.connect();
+    const sessionID = localStorage.getItem("sessionID");
+
+    if (sessionID) {
+      socket.auth = { sessionID };
+      socket.connect();
+    } else {
+      socket.connect();
+    }
 
     if (socket.connected) {
+      console.log("Conectado: " + socket.connected);
       onConnect();
     }
 
@@ -79,88 +86,191 @@ export default function Home() {
     }
 
     function onDisconnect() {
-      setIsConnected(false);
-      setTransport("N/A");
+      // setIsConnected(false);
+      // setTransport("N/A");
+      setUsers((prevState) =>
+        prevState.map((user) =>
+          user.self
+            ? {
+                ...user,
+                connected: false,
+              }
+            : user
+        )
+      );
     }
 
     function listAllUsers(users: MyUser[]) {
+      console.log("Usuários: " + users);
+
       let newUsers: MyUser[] = users.map((user) => {
         return {
           ...user,
-          self: user.userID == socket.id,
+          self: user.userID === socket.userID,
         };
       });
+
       newUsers = newUsers.sort((a, b) => {
         if (a.self) return -1;
         if (b.self) return 1;
         if (a.username < b.username) return -1;
         return a.username > b.username ? 1 : 0;
       });
+
       setUsers(newUsers);
     }
 
     function handleConnectionError(err: { message: string }) {
-      if (err.message === "Invalid username!") {
-        router.push("/");
-      }
+      console.log("Erro de conexão");
+      localStorage.clear();
+      router.back();
+      // if (err.message === "Invalid username!") {
+      //   router.push("/");
+      // }
     }
 
     function newUser(user: MyUser) {
-      let newUser = {
-        ...user,
-        self: user.userID == socket.id,
-      };
-      setUsers((previous) => [...previous, newUser]);
+      if (user.userID !== socket.userID) {
+        console.log("--------------------------------");
+        console.log("NEW USER ENTERED");
+        console.log("User ID: " + user.userID);
+        console.log("Socket ID: " + socket.userID);
+        console.log("--------------------------------");
+
+        let newUser = {
+          ...user,
+          self: socket.userID === user.userID,
+        };
+        let isInside = false;
+
+        for (let i = 0; i < users.length; i++) {
+          if (users[i].userID === user.userID) {
+            isInside = true;
+          }
+        }
+        if (!isInside) {
+          setUsers((previous) => [...previous, newUser]);
+        }
+
+        // setUsers((previous) =>
+        //   previous.map((myUser) =>
+        //     user.userID === socket.userID ? myUser : myUser
+        //   )
+        // );
+      }
     }
 
     function handleNewMessage({
       content,
       from,
+      to,
     }: {
       content: string;
       from: string;
+      to: string;
     }) {
-      setUsers((prevState) =>
-        prevState.map((user) =>
-          user.userID === from
-            ? {
-                ...user,
-                messages: user.messages
-                  ? [...user.messages, { content, fromSelf: false }]
-                  : [{ content, fromSelf: false }],
-              }
-            : user
-        )
-      );
+      console.log("---------------------------");
+      console.log("Conteudo: " + content);
+      console.log("De: " + from);
+      console.log("Para: " + to);
+      console.log("---------------------------");
 
-      if (selectedUser && from === selectedUser.userID) {
-        const updatedUser = {
-          ...selectedUser,
-          messages: selectedUser.messages
-            ? [...selectedUser.messages, { content, fromSelf: false }]
-            : [{ content, fromSelf: false }],
-        };
+      for (let i = 0; i < users.length; i++) {
+        const user = users[i];
+        const fromSelf = socket.userID === from;
+        // console.log(fromSelf);
+        if (user.userID === (fromSelf ? to : from)) {
+          setUsers((prevState) =>
+            prevState.map((user) =>
+              user.userID === from
+                ? {
+                    ...user,
+                    messages: user.messages
+                      ? [...user.messages, { content, fromSelf: fromSelf }]
+                      : [{ content, fromSelf: fromSelf }],
+                  }
+                : user
+            )
+          );
 
-        setSelectedUser((prevState) => updatedUser);
+          if (selectedUser && from === selectedUser.userID) {
+            const updatedUser = {
+              ...selectedUser,
+              messages: selectedUser.messages
+                ? [...selectedUser.messages, { content, fromSelf: false }]
+                : [{ content, fromSelf: false }],
+            };
+            setSelectedUser((prevState) => updatedUser);
+          }
+          break;
+        }
       }
     }
 
+    function handleSession({
+      sessionID,
+      userID,
+    }: {
+      sessionID: string;
+      userID: string;
+    }) {
+      console.log("-----------------------------");
+      console.log("Session ID: ");
+      console.log(sessionID);
+      console.log("User ID: ");
+      console.log(userID);
+      console.log("-----------------------------");
+      socket.auth = { sessionID };
+      localStorage.setItem("sessionID", sessionID);
+      socket.userID = userID;
+    }
+
+    // socket.on("connect", () => {
+    //   setUsers((prevState) =>
+    //     prevState.map((user) =>
+    //       user.self
+    //         ? {
+    //             ...user,
+    //             connected: true,
+    //           }
+    //         : user
+    //     )
+    //   );
+    // });
+
+    // socket.on("disconnect", () => {
+    //   setUsers((prevState) =>
+    //     prevState.map((user) =>
+    //       user.self
+    //         ? {
+    //             ...user,
+    //             connected: false,
+    //           }
+    //         : user
+    //     )
+    //   );
+    // });
+
+    socket.onAny((event, ...args) => {
+      console.log(event, args);
+    });
+
+    socket.on("session", handleSession);
     socket.on("users-list", listAllUsers);
     socket.on("user-connected", newUser);
     socket.on("private-message", handleNewMessage);
     socket.on("connect", onConnect);
-    socket.on("disconnect", onDisconnect);
+    socket.on("user-disconnected", onDisconnect);
     socket.on("connect_error", handleConnectionError);
 
-    // socket.onAny((event, ...args) => {
-    //   console.log(event, args);
-    // });
     return () => {
       socket.off("connect", onConnect);
       socket.off("users-list", listAllUsers);
-      socket.off("disconnect", onDisconnect);
+      socket.off("user-disconnected", onDisconnect);
       socket.off("user-connected", newUser);
       socket.off("private-message", handleNewMessage);
+      socket.off("session", handleSession);
+      socket.off("connect_error", handleConnectionError);
     };
   }, [users, router, selectedUser]);
 
@@ -184,6 +294,8 @@ export default function Home() {
                 />
 
                 {user.username}
+                {user.self ? " (Você)" : ""}
+                {user.connected ? "Conectado" : "Desconectado"}
               </li>
             );
           })}

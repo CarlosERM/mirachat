@@ -1,5 +1,5 @@
 "use client";
-import { FormEvent, createContext, useState } from "react";
+import { FormEvent, createContext, useEffect, useState } from "react";
 import Input from "./chat/input-chat";
 import Link from "next/link";
 import { socket } from "@/socket";
@@ -11,20 +11,28 @@ export default function UsernamePage() {
   const [error, setError] = useState(false);
   const router = useRouter();
 
+  useEffect(() => {
+    const sessionID = localStorage.getItem("sessionID");
+
+    if (sessionID) {
+      // socket.auth = { sessionID };
+      // socket.connect();
+      router.push("/chat");
+    }
+  }, []);
+
   function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (username) {
-      setError(false);
-      socket.auth = { username };
-      // socket.connect();
-
+      // setError(false);
       // socket.on("connect_error", (err) => {
       //   if (err.message === "Invalid username!") {
       //     router.push("/");
       //     setError(true);
       //   }
       // });
-
+      socket.auth = { username };
+      // socket.connect();
       router.push("/chat");
     }
   }
