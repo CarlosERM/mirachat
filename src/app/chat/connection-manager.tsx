@@ -12,9 +12,9 @@ export function ConnectionManager() {
   }
 
   return (
-    <>
+    <div className="flex gap-3">
       <button onClick={connect}>Connect</button>
       <button onClick={disconnect}>Disconnect</button>
-    </>
+    </div>
   );
 }

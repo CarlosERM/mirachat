@@ -100,7 +100,16 @@ app.prepare().then(() => {
           connected: false,
         });
       }
-      console.log(matchingSockets);
+      const users = [];
+      sessionStore.findAllSessions().forEach((session) => {
+        users.push({
+          userID: session.userID,
+          username: session.username,
+          connected: session.connected,
+        });
+      });
+      console.log(users);
+      // console.log(matchingSockets);
     });
   });
 

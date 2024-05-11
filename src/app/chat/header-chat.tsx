@@ -1,7 +1,5 @@
 import Cute from "../../../public/cute.jpg";
-
 import Image from "next/image";
-import { ConnectionManager } from "./connection-manager";
 
 export default function HeaderChat({
   username,
@@ -16,7 +14,6 @@ export default function HeaderChat({
         className="w-12 h-12 rounded-full"
       />
       <h2 className="text-xl">{username}</h2>
-      <ConnectionManager />
     </div>
   );
 }

@@ -16,11 +16,7 @@ export function Form({
 
   function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
-
     sendMessage();
-    // socket.timeout(1000).emit("message-server", value, () => {
-    //   console.log("a mensagem foi enviada com sucesso!");
-    // });
     setValue("");
   }
 
@@ -43,6 +39,10 @@ export function Form({
         },
       ];
     }
+    console.log("---------------------------------");
+    console.log("Enviando mensagem.......");
+    console.log(user);
+    console.log("---------------------------------");
     updateUser(user);
   }
 

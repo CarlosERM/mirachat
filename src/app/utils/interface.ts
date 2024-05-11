@@ -4,6 +4,7 @@ export interface MyUser {
   self: boolean;
   messages?: MyMessage[];
   connected: boolean;
+  newMessage: boolean;
 }
 
 export interface MyMessage {

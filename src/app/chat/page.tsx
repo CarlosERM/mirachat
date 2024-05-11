@@ -9,6 +9,8 @@ import { useRouter } from "next/navigation";
 import Messages from "./messages";
 import HeaderChat from "./header-chat";
 import { MyMessage, MyUser } from "../utils/interface";
+import { ConnectionManager } from "./connection-manager";
+import { connected } from "process";
 
 export default function Home() {
   const [isConnected, setIsConnected] = useState(false);
@@ -62,6 +64,39 @@ export default function Home() {
   }
 
   useEffect(() => {
+    function onDisconnect(userID: string) {
+      console.log("------------------------------------");
+      console.log("USER " + userID + " DISCONNECTED");
+      console.log("------------------------------------");
+      // setIsConnected(false);
+      // setTransport("N/A");
+      setUsers((prevState) =>
+        prevState.map((user) =>
+          user.userID === userID
+            ? {
+                ...user,
+                connected: false,
+              }
+            : user
+        )
+      );
+
+      if (selectedUser?.userID === userID) {
+        const updatedUser = {
+          ...selectedUser,
+          connected: false,
+        };
+        setSelectedUser(updatedUser);
+      }
+    }
+    socket.on("user-disconnected", onDisconnect);
+
+    return () => {
+      socket.off("user-disconnected", onDisconnect);
+    };
+  }, [users, selectedUser]);
+
+  useEffect(() => {
     const sessionID = localStorage.getItem("sessionID");
 
     if (sessionID) {
@@ -72,7 +107,7 @@ export default function Home() {
     }
 
     if (socket.connected) {
-      console.log("Conectado: " + socket.connected);
+      // console.log("Conectado: " + socket.connected);
       onConnect();
     }
 
@@ -85,23 +120,57 @@ export default function Home() {
       });
     }
 
-    function onDisconnect() {
-      // setIsConnected(false);
-      // setTransport("N/A");
-      setUsers((prevState) =>
-        prevState.map((user) =>
-          user.self
-            ? {
-                ...user,
-                connected: false,
-              }
-            : user
-        )
-      );
-    }
+    socket.on("connect", onConnect);
+
+    return () => {
+      socket.off("connect", onConnect);
+    };
+  }, []);
+
+  useEffect(() => {
+    // const sessionID = localStorage.getItem("sessionID");
+
+    // if (sessionID) {
+    //   socket.auth = { sessionID };
+    //   socket.connect();
+    // } else {
+    //   socket.connect();
+    // }
+
+    // if (socket.connected) {
+    //   // console.log("Conectado: " + socket.connected);
+    //   onConnect();
+    // }
+
+    // function onConnect() {
+    //   setIsConnected(true);
+    //   setTransport(socket.io.engine.transport.name);
+
+    //   socket.io.engine.on("upgrade", (transport) => {
+    //     setTransport(transport.name);
+    //   });
+    // }
+
+    // function onDisconnect(userID: string) {
+    //   console.log("------------------------------------");
+    //   console.log("USER " + userID + " DISCONNECTED");
+    //   console.log("------------------------------------");
+    //   // setIsConnected(false);
+    //   // setTransport("N/A");
+    //   setUsers((prevState) =>
+    //     prevState.map((user) =>
+    //       user.userID === userID
+    //         ? {
+    //             ...user,
+    //             connected: false,
+    //           }
+    //         : user
+    //     )
+    //   );
+    // }
 
     function listAllUsers(users: MyUser[]) {
-      console.log("Usuários: " + users);
+      // console.log("Usuários: " + users);
 
       let newUsers: MyUser[] = users.map((user) => {
         return {
@@ -121,12 +190,9 @@ export default function Home() {
     }
 
     function handleConnectionError(err: { message: string }) {
-      console.log("Erro de conexão");
+      // console.log("Erro de conexão");
       localStorage.clear();
       router.back();
-      // if (err.message === "Invalid username!") {
-      //   router.push("/");
-      // }
     }
 
     function newUser(user: MyUser) {
@@ -148,15 +214,30 @@ export default function Home() {
             isInside = true;
           }
         }
+
         if (!isInside) {
           setUsers((previous) => [...previous, newUser]);
-        }
+        } else {
+          setUsers((prevState) =>
+            prevState.map((myUser) =>
+              myUser.userID === user.userID
+                ? {
+                    ...myUser,
+                    connected: newUser.connected,
+                  }
+                : myUser
+            )
+          );
 
-        // setUsers((previous) =>
-        //   previous.map((myUser) =>
-        //     user.userID === socket.userID ? myUser : myUser
-        //   )
-        // );
+          if (selectedUser) {
+            const updatedUser = {
+              ...selectedUser,
+              connected: newUser.connected,
+            };
+
+            setSelectedUser(updatedUser);
+          }
+        }
       }
     }
 
@@ -169,12 +250,15 @@ export default function Home() {
       from: string;
       to: string;
     }) {
-      console.log("---------------------------");
-      console.log("Conteudo: " + content);
-      console.log("De: " + from);
-      console.log("Para: " + to);
-      console.log("---------------------------");
-
+      // console.log("---------------------------");
+      // console.log("Conteudo: " + content);
+      // console.log("De: " + from);
+      // console.log("Para: " + to);
+      // console.log("---------------------------");
+      console.log("---------------------------------");
+      console.log("Recebendo mensagem.......");
+      console.log(users);
+      console.log("---------------------------------");
       for (let i = 0; i < users.length; i++) {
         const user = users[i];
         const fromSelf = socket.userID === from;
@@ -185,6 +269,7 @@ export default function Home() {
               user.userID === from
                 ? {
                     ...user,
+                    newMessage: true,
                     messages: user.messages
                       ? [...user.messages, { content, fromSelf: fromSelf }]
                       : [{ content, fromSelf: fromSelf }],
@@ -196,6 +281,7 @@ export default function Home() {
           if (selectedUser && from === selectedUser.userID) {
             const updatedUser = {
               ...selectedUser,
+              newMessage: false,
               messages: selectedUser.messages
                 ? [...selectedUser.messages, { content, fromSelf: false }]
                 : [{ content, fromSelf: false }],
@@ -214,12 +300,12 @@ export default function Home() {
       sessionID: string;
       userID: string;
     }) {
-      console.log("-----------------------------");
-      console.log("Session ID: ");
-      console.log(sessionID);
-      console.log("User ID: ");
-      console.log(userID);
-      console.log("-----------------------------");
+      // console.log("-----------------------------");
+      // console.log("Session ID: ");
+      // console.log(sessionID);
+      // console.log("User ID: ");
+      // console.log(userID);
+      // console.log("-----------------------------");
       socket.auth = { sessionID };
       localStorage.setItem("sessionID", sessionID);
       socket.userID = userID;
@@ -251,51 +337,62 @@ export default function Home() {
     //   );
     // });
 
-    socket.onAny((event, ...args) => {
-      console.log(event, args);
-    });
+    // socket.onAny((event, ...args) => {
+    //   console.log(event, args);
+    // });
 
     socket.on("session", handleSession);
     socket.on("users-list", listAllUsers);
     socket.on("user-connected", newUser);
     socket.on("private-message", handleNewMessage);
-    socket.on("connect", onConnect);
-    socket.on("user-disconnected", onDisconnect);
     socket.on("connect_error", handleConnectionError);
 
     return () => {
-      socket.off("connect", onConnect);
+      socket.off("session", handleSession);
       socket.off("users-list", listAllUsers);
-      socket.off("user-disconnected", onDisconnect);
       socket.off("user-connected", newUser);
       socket.off("private-message", handleNewMessage);
-      socket.off("session", handleSession);
       socket.off("connect_error", handleConnectionError);
     };
   }, [users, router, selectedUser]);
 
   return (
-    <div className="flex h-full ">
-      <aside className="h-full pt-4 pl-2 flex flex-col gap-3 items-center	overflow-y-scroll">
+    <div className="flex h-full">
+      <aside className="h-full pt-4 pl-2 pr-2 flex flex-col gap-3 items-center	overflow-y-scroll">
         <Image src={MirachatIcon} alt="Mirachat Icon" className="w-44" />
-        <ul>
+        <ConnectionManager />
+        <ul className="flex flex-col gap-1">
           {users?.map((user, index) => {
             return (
               <li
-                className="p-4 text-lg rounded-lg hover:bg-c7 focus:bg-c8 flex gap-4 w-72"
+                className={
+                  selectedUser?.userID === user.userID
+                    ? "p-4 text-lg rounded-lg bg-c8 flex gap-4 w-72 items-center cursor-pointer relative"
+                    : "p-4 text-lg rounded-lg hover:bg-c7 focus:bg-c8 active:bg-c8 flex gap-4 w-72 items-center cursor-pointer relative"
+                }
                 key={index}
                 data-id={user.userID}
                 onClick={onClick}
               >
-                <Image
-                  src={Cute}
-                  alt="Foto do usuário"
-                  className="w-8 rounded-2xl"
-                />
-
-                {user.username}
-                {user.self ? " (Você)" : ""}
-                {user.connected ? "Conectado" : "Desconectado"}
+                <div className="relative w-11 h-11">
+                  <Image
+                    src={Cute}
+                    alt="Foto do usuário"
+                    className="w-full h-full rounded-full"
+                  />
+                  {user.connected ? (
+                    <span className="w-3.5 h-3.5 bg-c12 absolute right-0 bottom-0 rounded-full border border-white"></span>
+                  ) : (
+                    <span className="w-3.5 h-3.5 bg-red-600 absolute right-0 bottom-0 rounded-full border border-white"></span>
+                  )}
+                </div>
+                <p>
+                  {user.username}
+                  {user.self ? " (You)" : ""}
+                </p>
+                {user.newMessage && (
+                  <span className="w-3.5 h-3.5 bg-c12 rounded-full absolute right-4"></span>
+                )}
               </li>
             );
           })}
