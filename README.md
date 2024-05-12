@@ -1,6 +1,6 @@
 # Mirachat
 
-This is a site made to send message to other users!
+This is a site made to send messages to other users!
 
 ## Technologies:
 
