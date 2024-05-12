@@ -1,6 +1,5 @@
 "use client";
 import { socket } from "../../socket";
-import { useEffect, useState } from "react";
 
 export function ConnectionManager() {
   function connect() {

@@ -9,5 +9,7 @@ export interface MyUser {
 
 export interface MyMessage {
   content: string;
+  from?: string;
+  to: string;
   fromSelf: boolean;
 }

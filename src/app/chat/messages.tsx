@@ -1,4 +1,4 @@
-import { RefObject, useEffect, useRef } from "react";
+import { RefObject } from "react";
 import { MyUser } from "../utils/interface";
 
 export default function Messages({

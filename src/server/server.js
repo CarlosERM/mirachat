@@ -3,7 +3,10 @@ import next from "next";
 import { Server } from "socket.io";
 import crypto from "crypto";
 import { InMemorySessionStore } from "./sessionStore.js";
+import { InMemoryMessageStore } from "./messageStore.js";
+
 const sessionStore = new InMemorySessionStore();
+const messageStore = new InMemoryMessageStore();
 
 const randomID = () => crypto.randomBytes(8).toString("hex");
 
@@ -57,14 +60,27 @@ app.prepare().then(() => {
     socket.join(socket.userID);
 
     const users = [];
+    const messagesPerUser = new Map();
+    messageStore.findMessagesForUser(socket.userID).forEach((message) => {
+      const { from, to } = message;
+      const otherUser = socket.userID === from ? to : from;
+
+      if (messagesPerUser.has(otherUser)) {
+        messagesPerUser.get(otherUser).push(message);
+      } else {
+        messagesPerUser.set(otherUser, [message]);
+      }
+    });
+
     sessionStore.findAllSessions().forEach((session) => {
       users.push({
         userID: session.userID,
         username: session.username,
         connected: session.connected,
+        messages: messagesPerUser.get(session.userID) || [],
       });
     });
-    console.log(users);
+    // console.log(users);
     socket.emit("users-list", users);
 
     // socket.on("users-list", () => {
@@ -78,14 +94,14 @@ app.prepare().then(() => {
     });
 
     socket.on("private-message", ({ content, to }) => {
-      console.log("Mensagem " + content + " enviada para " + to);
-      socket.to(to).to(socket.userID).emit("private-message", {
+      const message = {
         content,
         from: socket.userID,
         to,
-      });
-
-      // socket.to(to).emit("private-message", { content, from: socket.id });
+      };
+      // console.log("Mensagem " + content + " enviada para " + to);
+      socket.to(to).to(socket.userID).emit("private-message", message);
+      messageStore.saveMessage(message);
     });
 
     socket.on("disconnect", async () => {
@@ -108,7 +124,7 @@ app.prepare().then(() => {
           connected: session.connected,
         });
       });
-      console.log(users);
+      // console.log(users);
       // console.log(matchingSockets);
     });
   });

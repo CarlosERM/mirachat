@@ -1,5 +1,5 @@
 import { socket } from "@/socket";
-import { Dispatch, FormEvent, useState } from "react";
+import { FormEvent, useState } from "react";
 import Image from "next/image";
 import sendIcon from "../../../public/send-icon.svg";
 import Input from "./input-chat";
@@ -28,21 +28,25 @@ export function Form({
 
     if (user.messages) {
       user.messages.push({
+        from: socket.userID,
+        to: user.userID,
         content: value,
         fromSelf: true,
       });
     } else {
       user.messages = [
         {
+          from: socket.userID,
+          to: user.userID,
           content: value,
           fromSelf: true,
         },
       ];
     }
-    console.log("---------------------------------");
-    console.log("Enviando mensagem.......");
-    console.log(user);
-    console.log("---------------------------------");
+    // console.log("---------------------------------");
+    // console.log("Enviando mensagem.......");
+    // console.log(user);
+    // console.log("---------------------------------");
     updateUser(user);
   }
 

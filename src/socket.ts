@@ -1,4 +1,10 @@
 "use client";
-import { io } from "socket.io-client";
+import { Socket, io } from "socket.io-client";
 
-export const socket = io({ autoConnect: false });
+Socket;
+
+interface MySocket extends Socket {
+  userID?: string;
+}
+
+export const socket: MySocket = io({ autoConnect: false });

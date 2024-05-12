@@ -1,5 +1,5 @@
 "use client";
-import { useContext, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { socket } from "../../socket";
 import { Form } from "./form";
 import Image from "next/image";
@@ -8,13 +8,10 @@ import Cute from "../../../public/cute.jpg";
 import { useRouter } from "next/navigation";
 import Messages from "./messages";
 import HeaderChat from "./header-chat";
-import { MyMessage, MyUser } from "../utils/interface";
+import { MyUser } from "../utils/interface";
 import { ConnectionManager } from "./connection-manager";
-import { connected } from "process";
 
 export default function Home() {
-  const [isConnected, setIsConnected] = useState(false);
-  const [transport, setTransport] = useState("N/A");
   const [users, setUsers] = useState<MyUser[]>([]);
   const [selectedUser, setSelectedUser] = useState<MyUser>();
   const router = useRouter();
@@ -49,6 +46,7 @@ export default function Home() {
           self: users[i].self,
           messages: users[i].messages,
           connected: users[i].connected,
+          newMessage: users[i].newMessage,
         };
         setSelectedUser(selectedUser);
       }
@@ -65,11 +63,9 @@ export default function Home() {
 
   useEffect(() => {
     function onDisconnect(userID: string) {
-      console.log("------------------------------------");
-      console.log("USER " + userID + " DISCONNECTED");
-      console.log("------------------------------------");
-      // setIsConnected(false);
-      // setTransport("N/A");
+      // console.log("------------------------------------");
+      // console.log("USER " + userID + " DISCONNECTED");
+      // console.log("------------------------------------");
       setUsers((prevState) =>
         prevState.map((user) =>
           user.userID === userID
@@ -105,70 +101,9 @@ export default function Home() {
     } else {
       socket.connect();
     }
-
-    if (socket.connected) {
-      // console.log("Conectado: " + socket.connected);
-      onConnect();
-    }
-
-    function onConnect() {
-      setIsConnected(true);
-      setTransport(socket.io.engine.transport.name);
-
-      socket.io.engine.on("upgrade", (transport) => {
-        setTransport(transport.name);
-      });
-    }
-
-    socket.on("connect", onConnect);
-
-    return () => {
-      socket.off("connect", onConnect);
-    };
   }, []);
 
   useEffect(() => {
-    // const sessionID = localStorage.getItem("sessionID");
-
-    // if (sessionID) {
-    //   socket.auth = { sessionID };
-    //   socket.connect();
-    // } else {
-    //   socket.connect();
-    // }
-
-    // if (socket.connected) {
-    //   // console.log("Conectado: " + socket.connected);
-    //   onConnect();
-    // }
-
-    // function onConnect() {
-    //   setIsConnected(true);
-    //   setTransport(socket.io.engine.transport.name);
-
-    //   socket.io.engine.on("upgrade", (transport) => {
-    //     setTransport(transport.name);
-    //   });
-    // }
-
-    // function onDisconnect(userID: string) {
-    //   console.log("------------------------------------");
-    //   console.log("USER " + userID + " DISCONNECTED");
-    //   console.log("------------------------------------");
-    //   // setIsConnected(false);
-    //   // setTransport("N/A");
-    //   setUsers((prevState) =>
-    //     prevState.map((user) =>
-    //       user.userID === userID
-    //         ? {
-    //             ...user,
-    //             connected: false,
-    //           }
-    //         : user
-    //     )
-    //   );
-    // }
-
     function listAllUsers(users: MyUser[]) {
       // console.log("Usuários: " + users);
 
@@ -176,6 +111,10 @@ export default function Home() {
         return {
           ...user,
           self: user.userID === socket.userID,
+          messages: user.messages?.map((message) => ({
+            ...message,
+            fromSelf: message.from === socket.userID,
+          })),
         };
       });
 
@@ -192,16 +131,16 @@ export default function Home() {
     function handleConnectionError(err: { message: string }) {
       // console.log("Erro de conexão");
       localStorage.clear();
-      router.back();
+      router.push("/");
     }
 
     function newUser(user: MyUser) {
       if (user.userID !== socket.userID) {
-        console.log("--------------------------------");
-        console.log("NEW USER ENTERED");
-        console.log("User ID: " + user.userID);
-        console.log("Socket ID: " + socket.userID);
-        console.log("--------------------------------");
+        // console.log("--------------------------------");
+        // console.log("NEW USER ENTERED");
+        // console.log("User ID: " + user.userID);
+        // console.log("Socket ID: " + socket.userID);
+        // console.log("--------------------------------");
 
         let newUser = {
           ...user,
@@ -255,10 +194,10 @@ export default function Home() {
       // console.log("De: " + from);
       // console.log("Para: " + to);
       // console.log("---------------------------");
-      console.log("---------------------------------");
-      console.log("Recebendo mensagem.......");
-      console.log(users);
-      console.log("---------------------------------");
+      // console.log("---------------------------------");
+      // console.log("Recebendo mensagem.......");
+      // console.log(users);
+      // console.log("---------------------------------");
       for (let i = 0; i < users.length; i++) {
         const user = users[i];
         const fromSelf = socket.userID === from;
@@ -271,8 +210,23 @@ export default function Home() {
                     ...user,
                     newMessage: true,
                     messages: user.messages
-                      ? [...user.messages, { content, fromSelf: fromSelf }]
-                      : [{ content, fromSelf: fromSelf }],
+                      ? [
+                          ...user.messages,
+                          {
+                            content,
+                            from: from,
+                            to: to,
+                            fromSelf: from === socket.userID,
+                          },
+                        ]
+                      : [
+                          {
+                            content,
+                            from: from,
+                            to: to,
+                            fromSelf: from === socket.userID,
+                          },
+                        ],
                   }
                 : user
             )
@@ -283,8 +237,23 @@ export default function Home() {
               ...selectedUser,
               newMessage: false,
               messages: selectedUser.messages
-                ? [...selectedUser.messages, { content, fromSelf: false }]
-                : [{ content, fromSelf: false }],
+                ? [
+                    ...selectedUser.messages,
+                    {
+                      content,
+                      from: from,
+                      to: to,
+                      fromSelf: from === socket.userID,
+                    },
+                  ]
+                : [
+                    {
+                      content,
+                      from: from,
+                      to: to,
+                      fromSelf: from === socket.userID,
+                    },
+                  ],
             };
             setSelectedUser((prevState) => updatedUser);
           }
@@ -310,32 +279,6 @@ export default function Home() {
       localStorage.setItem("sessionID", sessionID);
       socket.userID = userID;
     }
-
-    // socket.on("connect", () => {
-    //   setUsers((prevState) =>
-    //     prevState.map((user) =>
-    //       user.self
-    //         ? {
-    //             ...user,
-    //             connected: true,
-    //           }
-    //         : user
-    //     )
-    //   );
-    // });
-
-    // socket.on("disconnect", () => {
-    //   setUsers((prevState) =>
-    //     prevState.map((user) =>
-    //       user.self
-    //         ? {
-    //             ...user,
-    //             connected: false,
-    //           }
-    //         : user
-    //     )
-    //   );
-    // });
 
     // socket.onAny((event, ...args) => {
     //   console.log(event, args);
@@ -400,13 +343,9 @@ export default function Home() {
       </aside>
       {selectedUser && (
         <main className="h-full flex flex-col grow">
-          {/* <ConnectionManager /> */}
           <HeaderChat username={selectedUser.username} />
-          {/* <ConnectionState isConnected={isConnected} /> */}
           <Messages user={selectedUser} scrollView={scrollView} />
           <Form user={selectedUser} updateUser={updateUser} />
-          {/* <p>Status: {isConnected ? "Conectado" : "Desconectado"} </p>
-        <p>Transport: {transport}</p> */}
         </main>
       )}
     </div>
