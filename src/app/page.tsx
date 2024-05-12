@@ -26,28 +26,14 @@ export default function UsernamePage() {
   function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (username) {
-      // setError(false);
-      // socket.on("connect_error", (err) => {
-      //   if (err.message === "Invalid username!") {
-      //     router.push("/");
-      //     setError(true);
-      //   }
-      // });
       socket.auth = { username };
-      // socket.connect();
       router.push("/chat");
     }
   }
 
   return (
     <>
-      {/* <div className="w-40 mt-4 ml-4">
-        <Link href="/">
-          <Image src={MirachatIcon} alt="Mirachat Icon" />
-        </Link>
-      </div> */}
-
-      <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center gap-4">
+      <div className="w-full px-4 absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center gap-4">
         {/* <Image src={MirachatIcon} alt="Mirachat Icon" /> */}
         <div className="w-48 mt-4 ml-4">
           <Link href="/">
@@ -55,7 +41,7 @@ export default function UsernamePage() {
           </Link>
         </div>
         <form
-          className="flex flex-col w-full lg:max-w-md gap-4 shadow-md px-6 py-8 rounded-lg border"
+          className="w-full max-w-sm	flex flex-col gap-4 shadow-md px-6 py-8 rounded-lg border"
           onSubmit={onSubmit}
         >
           <input

@@ -10,13 +10,14 @@ import Messages from "./messages";
 import HeaderChat from "./header-chat";
 import { MyUser } from "../utils/interface";
 import { ConnectionManager } from "./connection-manager";
+import MyAside from "./my-aside";
+import Link from "next/link";
 
 export default function Home() {
   const [users, setUsers] = useState<MyUser[]>([]);
   const [selectedUser, setSelectedUser] = useState<MyUser>();
   const router = useRouter();
   const scrollView = useRef<HTMLDivElement>(null);
-
   useEffect(() => {
     scrollDown();
   }, [users]);
@@ -85,6 +86,7 @@ export default function Home() {
         setSelectedUser(updatedUser);
       }
     }
+
     socket.on("user-disconnected", onDisconnect);
 
     return () => {
@@ -300,54 +302,17 @@ export default function Home() {
   }, [users, router, selectedUser]);
 
   return (
-    <div className="flex h-full">
-      <aside className="h-full pt-4 pl-2 pr-2 flex flex-col gap-3 items-center	overflow-y-scroll">
-        <Image src={MirachatIcon} alt="Mirachat Icon" className="w-44" />
-        <ConnectionManager />
-        <ul className="flex flex-col gap-1">
-          {users?.map((user, index) => {
-            return (
-              <li
-                className={
-                  selectedUser?.userID === user.userID
-                    ? "p-4 text-lg rounded-lg bg-c8 flex gap-4 w-72 items-center cursor-pointer relative"
-                    : "p-4 text-lg rounded-lg hover:bg-c7 focus:bg-c8 active:bg-c8 flex gap-4 w-72 items-center cursor-pointer relative"
-                }
-                key={index}
-                data-id={user.userID}
-                onClick={onClick}
-              >
-                <div className="relative w-11 h-11">
-                  <Image
-                    src={Cute}
-                    alt="Foto do usuário"
-                    className="w-full h-full rounded-full"
-                  />
-                  {user.connected ? (
-                    <span className="w-3.5 h-3.5 bg-c12 absolute right-0 bottom-0 rounded-full border border-white"></span>
-                  ) : (
-                    <span className="w-3.5 h-3.5 bg-red-600 absolute right-0 bottom-0 rounded-full border border-white"></span>
-                  )}
-                </div>
-                <p>
-                  {user.username}
-                  {user.self ? " (You)" : ""}
-                </p>
-                {user.newMessage && (
-                  <span className="w-3.5 h-3.5 bg-c12 rounded-full absolute right-4"></span>
-                )}
-              </li>
-            );
-          })}
-        </ul>
-      </aside>
-      {selectedUser && (
-        <main className="h-full flex flex-col grow">
-          <HeaderChat username={selectedUser.username} />
-          <Messages user={selectedUser} scrollView={scrollView} />
-          <Form user={selectedUser} updateUser={updateUser} />
-        </main>
-      )}
-    </div>
+    <>
+      <div className="flex h-full">
+        <MyAside users={users} selectedUser={selectedUser} onClick={onClick} />
+        {selectedUser && (
+          <main className="h-full flex flex-col grow">
+            <HeaderChat username={selectedUser.username} />
+            <Messages user={selectedUser} scrollView={scrollView} />
+            <Form user={selectedUser} updateUser={updateUser} />
+          </main>
+        )}
+      </div>
+    </>
   );
 }
